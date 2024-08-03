@@ -67,15 +67,15 @@ app.get("/todos/", async (request, response) => {
   response.send(data);
 });
 
-// app.get("/todos/:todoId/", async (request, response) => {
-//   const { todoId } = request.params;
+app.get("/todos/:todoId/", async (request, response) => {
+  const { todoId } = request.params;
 
-//   const getTodoQuery = `SELECT * FROM todo
-//      WHERE id = ${todoId};`;
+  const getTodoQuery = `SELECT * FROM todo
+     WHERE id = ${todoId};`;
 
-//   const todo = await Database.get(getTodoQuery);
-//   response.send(todo);
-// });
+  const todo = await db.get(getTodoQuery);
+  response.send(todo);
+});
 
 app.post("/todos/", async (request, response) => {
   const { id, todo, priority, status } = request.body;
@@ -84,8 +84,52 @@ app.post("/todos/", async (request, response) => {
                  todo (id,todo,priority,status)
                  VALUES (${id},'${todo}','${priority}','${status}');`;
 
-  await database.run(postTodoQuery);
+  await db.run(postTodoQuery);
   response.send("Todo Successfully Added");
+});
+
+app.put("todos/:todoId/", async (request, response) => {
+  const { todoId } = request.params;
+
+  let updateColumn = "";
+  const requestBody = request.body;
+
+  switch (true) {
+    case requestBody.status != undefined:
+      updateColumn = "Status";
+      break;
+
+    case requestBody.priority != undefined:
+      updateColumn = "Priority";
+      break;
+
+    case requestBody.todo != undefined:
+      updateColumn = "Todo";
+      break;
+  }
+
+  const previousTodoQuery = `SELECT * FROM todo WHERE id = ${todoId};`;
+  const previousTodo = await db.get(previousTodoQuery);
+
+  const {
+    todo = previousTodo.todo,
+    priority = previousTodo.priority,
+    status = previousTodo.status,
+  } = request.body;
+
+  const updateTodoQuery = `UPDATE todo SET todo ='${todo}',
+    priority = '${priority}', status = '${status}'  WHERE
+     id = ${todoId};`;
+
+  await db.run(updateTodoQuery);
+  response.send(`${updateColumn} Updated`);
+});
+
+app.delete("/todos/:todoId/", async (request, response) => {
+  const { todoId } = request.params;
+  const deleteTodoQuery = `DELETE FROM todo WHERE id = ${todoId};`;
+  await db.run(deleteTodoQuery);
+  response.send("Todo Deleted");
 });
 
 module.exports = app;
